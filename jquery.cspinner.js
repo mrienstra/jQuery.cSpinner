@@ -1,5 +1,5 @@
 /*!
- * jQuery Canvas Spinner Plugin v0.2
+ * jQuery.cSpinner, v0.2.1
  * https://github.com/mrienstra/jQuery.cSpinner
  *
  * Copyright 2011, Michael Rienstra
@@ -7,9 +7,9 @@
  *
  * Based on code by Thijs van der Vossen, Fingertips, http://www.fngtps.com
  *
- * Replaces the target element(s) with canvas elements (unless they are already canvas elements), then draws an animated loading indicator
+ * A jQuery plugin to create animated loading indicators using the canvas element
  *
- * Date: Tue Jun 7 4:57:11 2011 -0700
+ * Date: Tue Jun 7, 2011
  */
 (function ($) {
     var pluginName = "cSpinner", // Used primarily for namespacing
@@ -54,7 +54,8 @@
                     "shadowBlur": 1,
                     "shadowColor": "rgba(10, 10, 10, 0.5)",
                     "checkExistsInterval": 1000,
-                    "preserveExisting": ["id", "class", "style"]
+                    "preserveExisting": ["id", "class", "style"],
+                    "autoStart": true
                 },
                 $this = $(this),
                 canvas,
@@ -73,7 +74,8 @@
                 opacity = [],
                 intervalID,
                 counter = 0,
-                checkExistsEvery;
+                checkExistsEvery,
+                startAnimating;
                 
                 if (options) {
                     $.extend(settings, options);
@@ -161,26 +163,35 @@
                 counter = 0;
                 checkExistsEvery = Math.round(settings.checkExistsInterval / settings.delay);
                 
-                // Start animating
-                intervalID = setInterval(function () {
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-                    opacity.unshift(opacity.pop());
-                    for (i = 0; i < settings.segments; i++) {
-                        context.globalAlpha = opacity[i];
-                        context.beginPath();
-                        context.moveTo(settings.center + sectors[i][0], settings.center + sectors[i][1]);
-                        context.lineTo(settings.center + sectors[i][2], settings.center + sectors[i][3]);
-                        context.stroke();
-                    }
-                    
-                    if (counter++ % checkExistsEvery === 0 && $(uniqueSelector).length !== 1) {
-                        // Target no longer exists, stop animating
-                        clearInterval(intervalID);
-                    }
-                }, settings.delay);
+                startAnimating = function () {
+                    return setInterval(function () {
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        opacity.unshift(opacity.pop());
+                        for (i = 0; i < settings.segments; i++) {
+                            context.globalAlpha = opacity[i];
+                            context.beginPath();
+                            context.moveTo(settings.center + sectors[i][0], settings.center + sectors[i][1]);
+                            context.lineTo(settings.center + sectors[i][2], settings.center + sectors[i][3]);
+                            context.stroke();
+                        }
+                        
+                        if (counter++ % checkExistsEvery === 0 && $(uniqueSelector).length !== 1) {
+                            // Target no longer exists, stop animating
+                            clearInterval(intervalID);
+                        }
+                    }, settings.delay);
+                }
                 
-                // Store the intervalID (used by .cspinner("stop") method)
-                $canvas.data(pluginName, {intervalID: intervalID});
+                if (settings.autoStart === true) {
+                    // Start animating
+                    intervalID = startAnimating();
+                    
+                    // Store the intervalID (used by .cSpinner("stop") method) & the startAnimating function (used by .cSpinner("start") method)
+                    $canvas.data(pluginName, {intervalID: intervalID, startAnimating: startAnimating});
+                } else {
+                    // Store the startAnimating function (used by .cSpinner("start") method)
+                    $canvas.data(pluginName, {startAnimating: startAnimating});
+                }
                 
                 if (canvas !== this) {
                     // We replaced the original element, so we need to update it in the jQuery object (for chaining purposes)
@@ -191,6 +202,24 @@
             return jqueryObject;
         },
         
+        start: function () {
+            // Start animating
+            
+            return this.each(function () {
+                var $this = $(this),
+                data = $this.data(pluginName),
+                intervalID;
+                
+                if (data && data.startAnimating) {
+                    // Start animating
+                    intervalID = data.startAnimating();
+                    
+                    // Store the intervalID (used by .cSpinner("stop") method)
+                    $this.data(pluginName, {intervalID: intervalID, startAnimating: data.startAnimating});
+                }
+            });
+        },
+        
         stop: function () {
             // Stop animating
             
@@ -199,7 +228,6 @@
                 data = $this.data(pluginName);
                 if (data && data.intervalID) {
                     clearInterval(data.intervalID);
-                    $this.removeData(pluginName);
                 }
             });
         }

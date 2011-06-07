@@ -25,6 +25,8 @@ Requires browser support for the canvas element.  To add canvas support to IE, t
 
 `$("#loading_indicator").cSpinner('stop');`
 
+`$("#loading_indicator").cSpinner('start');`
+
 See source for more options.
 
 ## Known issues
