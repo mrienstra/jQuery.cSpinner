@@ -7,6 +7,10 @@ Based on code by Thijs van der Vossen, Fingertips, http://www.fngtps.com
 
 Replaces the target element(s) with canvas elements (unless they are already canvas elements), then draws an animated loading indicator.
 
+## Demo
+
+http://michaelrienstra.com/jquery.cspinner/demo/
+
 ## Dependancies
 
 Requires [jQuery](http://jquery.com/).
