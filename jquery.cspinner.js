@@ -11,6 +11,8 @@
  *
  * Date: Tue Jun 7, 2011
  */
+/* For JSLint: */
+/*global document: false, window: false */
 (function ($) {
     var pluginName = "cSpinner", // Used primarily for namespacing
     
