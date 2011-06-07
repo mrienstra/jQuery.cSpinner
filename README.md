@@ -7,9 +7,15 @@ Based on code by Thijs van der Vossen, Fingertips, http://www.fngtps.com
 
 Replaces the target element(s) with canvas elements (unless they are already canvas elements), then draws an animated loading indicator.
 
-## Demo
+## Demos
 
 http://michaelrienstra.com/jquery.cspinner/demo/
+
+http://jsfiddle.net/mrienstra/5p8ep/
+
+http://jsfiddle.net/mrienstra/UpTnQ/
+
+http://jsfiddle.net/mrienstra/pEjgp/
 
 ## Dependancies
 
@@ -27,13 +33,11 @@ Requires browser support for the canvas element.  To add canvas support to IE, t
 
 `$("#loading_indicator").cSpinner('start');`
 
-See source for more options.
+See the source (or jsFiddle demos, above) for more options.
 
 ## Known issues
 
-If the browser does not support the canvas element, the current behavior is to do nothing.  You can use a traditional animated gif as the target, to be “enhanced” if canvas is supported.  The downside to this approach is that WebKit browsers will still download the original image  -- see https://bugs.webkit.org/show_bug.cgi?id=6656
-
-Several mobile versions of WebKit lag badly when attempting to replace an image element before it has finished loading.  I haven't isolated this bug yet to see if it is specific to replacing an image element with a canvas element.
+If the browser does not support the canvas element, the current behavior is to do nothing.  You can use a traditional animated gif as the target (or a child of the target), to be “enhanced” if canvas is supported.  The downside to this approach is that WebKit browsers will still download the original image  -- see https://bugs.webkit.org/show_bug.cgi?id=6656
 
 If the "shadow" option is specified, the shadowOffsetY value will be reversed on Android browsers -- see http://code.google.com/p/android/issues/detail?id=16025
 

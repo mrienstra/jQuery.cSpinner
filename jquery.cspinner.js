@@ -1,5 +1,5 @@
 /*!
- * jQuery.cSpinner, v0.2.1
+ * jQuery.cSpinner, v0.2.2
  * https://github.com/mrienstra/jQuery.cSpinner
  *
  * Copyright 2011, Michael Rienstra
@@ -55,12 +55,15 @@
                     "shadowColor": "rgba(10, 10, 10, 0.5)",
                     "checkExistsInterval": 1000,
                     "preserveExisting": ["id", "class", "style"],
-                    "autoStart": true
+                    "autoStart": true,
+                    "lineCap": "round",
+                    "pixelRatio": 1
                 },
-                $this = $(this),
-                canvas,
+                toBeScaled = ["width", "inner", "outer", "shadowOffsetX", "shadowOffsetY", "shadowBlur"],
                 i,
                 l,
+                canvas,
+                $this = $(this),
                 attr,
                 $canvas,
                 canvasId,
@@ -81,17 +84,23 @@
                     $.extend(settings, options);
                 }
                 
-                settings.width = settings.width * settings.scale;
-                settings.inner = settings.inner * settings.scale;
-                settings.outer = settings.outer * settings.scale;
+                for(i = 0, l = toBeScaled.length; i < l; i++) {
+                    settings[toBeScaled[i]] = settings[toBeScaled[i]] * settings.scale;
+                }
+                
                 settings.delay = 1000 / settings.speed / settings.segments;
-                settings.center = Math.ceil(settings.outer + settings.width);
+                settings.center = settings.outer + settings.width;
+                if (settings.shadow) {
+                    // Make canvas slightly larger to accomodate the shadow
+                    settings.center += (settings.shadowOffsetX > settings.shadowOffsetY) ? settings.shadowOffsetX : settings.shadowOffsetY;
+                    settings.center += settings.shadowBlur;
+                }
+                settings.center = Math.ceil(settings.center);
                 settings.canvasSize = settings.center * 2;
                 
-                if (window.devicePixelRatio && window.devicePixelRatio !== 1) {
-                    // Accomodate iPhone 4 Retina & the like
+                if (settings.pixelRatio !== 1) {
                     settings.canvasSizeCSS = settings.canvasSize + "px";
-                    settings.canvasSize = settings.canvasSize * window.devicePixelRatio;
+                    settings.canvasSize = settings.canvasSize * settings.pixelRatio;
                 }
                 
                 
@@ -133,20 +142,19 @@
                 canvas.width = canvas.height = settings.canvasSize;
                 context = canvas.getContext("2d");
                 context.lineWidth = settings.width;
-                context.lineCap = "round";
+                context.lineCap = settings.lineCap;
                 context.strokeStyle = settings.color;
                 
                 if (settings.shadow) {
                     // Shadow
-                    context.shadowOffsetX = settings.shadowOffsetX * settings.scale;
-                    context.shadowOffsetY = settings.shadowOffsetY * settings.scale;
-                    context.shadowBlur = settings.shadowBlur * settings.scale;
+                    context.shadowOffsetX = settings.shadowOffsetX;
+                    context.shadowOffsetY = settings.shadowOffsetY;
+                    context.shadowBlur = settings.shadowBlur;
                     context.shadowColor = settings.shadowColor;
                 }
                 
-                if (window.devicePixelRatio && window.devicePixelRatio !== 1) {
-                    // Accomodate iPhone 4 Retina & the like
-                    context.scale(window.devicePixelRatio, window.devicePixelRatio);
+                if (settings.pixelRatio !== 1) {
+                    context.scale(settings.pixelRatio, settings.pixelRatio);
                     $canvas.css({width: settings.canvasSizeCSS, height: settings.canvasSizeCSS});
                 }
                 
