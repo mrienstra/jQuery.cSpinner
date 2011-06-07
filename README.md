@@ -82,6 +82,6 @@ If the `shadow` option is specified, the `shadowOffsetY` value will be reversed 
 
 After I started writing this, I discovered 2 similar plugins -- check 'em out!
 
-* http://plugins.jquery.com/project/spinners  /  https://github.com/staaky/spinners
+* Spinners: http://plugins.jquery.com/project/spinners  /  https://github.com/staaky/spinners
 
-* http://plugins.jquery.com/project/canvas-loader  /  http://jamund.com/canvas-loader/
+* jQuery Canvas Loader: http://plugins.jquery.com/project/canvas-loader  /  http://jamund.com/canvas-loader/

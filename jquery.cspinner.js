@@ -1,5 +1,5 @@
 /*!
- * jQuery.cSpinner, v0.2.2
+ * jQuery.cSpinner, v0.2.3
  * https://github.com/mrienstra/jQuery.cSpinner
  *
  * Copyright 2011, Michael Rienstra
@@ -14,12 +14,6 @@
 (function ($) {
     var pluginName = "cSpinner", // Used primarily for namespacing
     
-    isCanvasSupported = function () {
-        // à la Paul Irish / Modernizr
-        var elem = document.createElement("canvas");
-        return !!(elem.getContext && elem.getContext("2d"));
-    },
-    
     randomInt = function () {
         return String(Math.random()).substring(2);
     },
@@ -29,12 +23,18 @@
             // Initialize and begin animating
             
             var jqueryObject = this,
-            canvas,
-            $canvas;
+            
+            isCanvasSupported = function () {
+                // à la Paul Irish / Modernizr
+                var elem = document.createElement("canvas");
+                return !!(elem.getContext && elem.getContext("2d"));
+            };
             
             if (!isCanvasSupported) {
                 // No Canvas support, log a notice, then hand off to “the next link in the chain”
-                console.log("jQuery." + pluginName + ": Canvas not supported");
+                if (window.console && window.console.log) {
+                    window.console.log("jQuery." + pluginName + ": Canvas not supported");
+                }
                 return this;
             }
             
@@ -172,7 +172,7 @@
                 checkExistsEvery = Math.round(settings.checkExistsInterval / settings.delay);
                 
                 startAnimating = function () {
-                    return setInterval(function () {
+                    return window.setInterval(function () {
                         context.clearRect(0, 0, canvas.width, canvas.height);
                         opacity.unshift(opacity.pop());
                         for (i = 0; i < settings.segments; i++) {
@@ -185,10 +185,10 @@
                         
                         if (counter++ % checkExistsEvery === 0 && $(uniqueSelector).length !== 1) {
                             // Target no longer exists, stop animating
-                            clearInterval(intervalID);
+                            window.clearInterval(intervalID);
                         }
                     }, settings.delay);
-                }
+                };
                 
                 if (settings.autoStart === true) {
                     // Start animating
@@ -235,7 +235,7 @@
                 var $this = $(this),
                 data = $this.data(pluginName);
                 if (data && data.intervalID) {
-                    clearInterval(data.intervalID);
+                    window.clearInterval(data.intervalID);
                 }
             });
         }
