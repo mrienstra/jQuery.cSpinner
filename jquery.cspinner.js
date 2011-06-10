@@ -1,5 +1,5 @@
 /*!
- * jQuery.cSpinner, v0.2.3
+ * jQuery.cSpinner, v0.2.4
  * https://github.com/mrienstra/jQuery.cSpinner
  *
  * Copyright 2011, Michael Rienstra
@@ -9,11 +9,16 @@
  *
  * A jQuery plugin to create animated loading indicators using the canvas element
  *
- * Date: Tue Jun 7, 2011
+ * Date: Fri Jun 10, 2011
  */
-/* For JSLint: */
-/*global document: false, window: false */
+/* JSLint http://www.jslint.com/
+ * Currently passing with the following settings:
+ * "Assume a browser" (so we can use document, setInterval, & clearInterval)
+ * And the following comment, telling JSLint that we’re assuming jQuery will already be declared.
+ */
+/*global jQuery: false */
 (function ($) {
+    "use strict";
     var pluginName = "cSpinner", // Used primarily for namespacing
     
     randomInt = function () {
@@ -33,37 +38,44 @@
             };
             
             if (!isCanvasSupported) {
-                // No Canvas support, log a notice, then hand off to “the next link in the chain”
-                if (window.console && window.console.log) {
-                    window.console.log("jQuery." + pluginName + ": Canvas not supported");
-                }
+                // This browser has no Canvas support: silently do nothing, hand off to “the next link in the chain”
                 return this;
             }
             
             this.each(function (index) {
                 var settings = {
                     // Default settings
-                    "scale": 1,
-                    "width": 3,
-                    "inner": 8.70,
-                    "outer": 14.42,
-                    "color": "#000",
-                    "segments": 12,
-                    "speed": 1,
+                    "speed": 1, // Increase --> faster
+                    "scale": 1, // Increase --> larger
+                    "lineWidth": 3, // Thickness of "lines"
+                    "lineCap": "round", // Other values: "butt", "square"
+                    "innerRadius": 8.70, // Increase --> bigger empty "circle" in the middle, shorter "lines"
+                    "outerRadius": 14.42, // Increase --> longer "lines" (relative to innerRadius)
+                    "color": "#000", // Try rgba()!
+                    "minimumOpacity": 0.18, // Fun to play with
+                    "segments": 12, // Number of "lines"
                     "shadow": false,
                     "shadowOffsetX": 1,
                     "shadowOffsetY": 1,
                     "shadowBlur": 1,
                     "shadowColor": "rgba(10, 10, 10, 0.5)",
+                    "pixelRatio": 1, // For high-dpi displays, like the iPhone 4
+                    "autoStart": true, // If false, call $(el).cSpinner("start")
                     "checkExistsInterval": 1000,
-                    "preserveExisting": ["id", "class", "style"],
-                    "autoStart": true,
-                    "lineCap": "round",
-                    "pixelRatio": 1
+                    "preserveExisting": ["id", "class", "style"]
                 },
-                toBeScaled = ["width", "inner", "outer", "shadowOffsetX", "shadowOffsetY", "shadowBlur"],
                 i,
                 l,
+                toBeScaled = ["lineWidth", "innerRadius", "outerRadius", "shadowOffsetX", "shadowOffsetY", "shadowBlur"],
+                segments,
+                delay,
+                outerRadius,
+                canvasCenter,
+                shadowOffsetX,
+                shadowOffsetY,
+                canvasSize,
+                pixelRatio,
+                canvasSizeCSS,
                 canvas,
                 $this = $(this),
                 attr,
@@ -71,49 +83,59 @@
                 canvasId,
                 uniqueSelector,
                 context,
-                lowestOpacity,
+                minimumOpacity,
                 a,
                 cos,
                 sin,
                 sectors = [],
                 opacity = [],
-                intervalID,
                 counter = 0,
                 checkExistsEvery,
-                startAnimating;
+                startAnimating,
+                originalTarget = this;
                 
                 if (options) {
                     $.extend(settings, options);
                 }
                 
-                for(i = 0, l = toBeScaled.length; i < l; i++) {
+                for(i = 0, l = toBeScaled.length; i < l; i = i + 1) {
                     settings[toBeScaled[i]] = settings[toBeScaled[i]] * settings.scale;
                 }
                 
-                settings.delay = 1000 / settings.speed / settings.segments;
-                settings.center = settings.outer + settings.width;
+                segments = settings.segments;
+                
+                delay = 1000 / settings.speed / segments;
+                
+                outerRadius = settings.outerRadius;
+                
+                canvasCenter = outerRadius + settings.lineWidth;
                 if (settings.shadow) {
-                    // Make canvas slightly larger to accomodate the shadow
-                    settings.center += (settings.shadowOffsetX > settings.shadowOffsetY) ? settings.shadowOffsetX : settings.shadowOffsetY;
-                    settings.center += settings.shadowBlur;
+                    // Make canvas slightly larger to accommodate the shadow
+                    shadowOffsetX = settings.shadowOffsetX;
+                    shadowOffsetY = settings.shadowOffsetY;
+                    canvasCenter += (shadowOffsetX > shadowOffsetY) ? shadowOffsetX : shadowOffsetY;
+                    canvasCenter += settings.shadowBlur;
                 }
-                settings.center = Math.ceil(settings.center);
-                settings.canvasSize = settings.center * 2;
+                canvasCenter = Math.ceil(canvasCenter);
+                canvasSize = canvasCenter * 2;
                 
-                if (settings.pixelRatio !== 1) {
-                    settings.canvasSizeCSS = settings.canvasSize + "px";
-                    settings.canvasSize = settings.canvasSize * settings.pixelRatio;
+                pixelRatio = settings.pixelRatio;
+                
+                if (pixelRatio !== 1) {
+                    canvasSizeCSS = String(canvasSize) + "px";
+                    canvasSize = canvasSize * pixelRatio;
                 }
-                
                 
                 if (this.nodeName !== "CANVAS") {
                     // Replace target element with canvas element
                     canvas = $("<canvas />");
                     $this.replaceWith(function () {
                         // Defaults to preserving the ID, class, & style attributes of the target element
-                        for (i = 0, l = settings.preserveExisting.length; i < l; i++) {
+                        for (i = 0, l = settings.preserveExisting.length; i < l; i = i + 1) {
                             attr = settings.preserveExisting[i];
-                            if ($this.attr(attr)) { canvas.attr(attr, $this.attr(attr)); }
+                            if ($this.attr(attr)) {
+                                canvas.attr(attr, $this.attr(attr));
+                            }
                         }
                         return canvas;
                     });
@@ -141,66 +163,84 @@
                     uniqueSelector = "#" + canvasId;
                 }
                 
-                canvas.width = canvas.height = settings.canvasSize;
+                canvas.width = canvas.height = canvasSize;
                 context = canvas.getContext("2d");
-                context.lineWidth = settings.width;
+                context.lineWidth = settings.lineWidth;
                 context.lineCap = settings.lineCap;
                 context.strokeStyle = settings.color;
                 
                 if (settings.shadow) {
                     // Shadow
-                    context.shadowOffsetX = settings.shadowOffsetX;
-                    context.shadowOffsetY = settings.shadowOffsetY;
+                    context.shadowOffsetX = shadowOffsetX;
+                    context.shadowOffsetY = shadowOffsetY;
                     context.shadowBlur = settings.shadowBlur;
                     context.shadowColor = settings.shadowColor;
                 }
                 
-                if (settings.pixelRatio !== 1) {
-                    context.scale(settings.pixelRatio, settings.pixelRatio);
-                    $canvas.css({width: settings.canvasSizeCSS, height: settings.canvasSizeCSS});
+                if (pixelRatio !== 1) {
+                    context.scale(pixelRatio, pixelRatio);
+                    $canvas.css({
+                        width: canvasSizeCSS,
+                        height: canvasSizeCSS
+                    });
                 }
                 
-                lowestOpacity = 0.18;
+                minimumOpacity = settings.minimumOpacity;
+                // Make sure the minimumOpacity value is not zero or less
+                if (minimumOpacity <= 0) {
+                    // Has to be greater than 0, but can be effectively 0
+                    minimumOpacity = 0.0001;
+                }
                 
-                for (i = 0; i < settings.segments; i++) {
-                    a = 2 * Math.PI / settings.segments * i - Math.PI / 2;
+                for (i = 0; i < segments; i = i + 1) {
+                    a = 2 * Math.PI / segments * i - Math.PI / 2;
                     cos = Math.cos(a);
                     sin = Math.sin(a);
-                    sectors[i] = [settings.inner * cos, settings.inner * sin, settings.outer * cos, settings.outer * sin];
-                    opacity[i] = Math.pow(i / (settings.segments - 1), 1.8) * (1 - lowestOpacity) + lowestOpacity;
+                    sectors[i] = [
+                        settings.innerRadius * cos,
+                        settings.innerRadius * sin,
+                        outerRadius * cos,
+                        outerRadius * sin
+                    ];
+                    opacity[i] = Math.pow(i / (segments - 1), minimumOpacity * 10) * (1 - minimumOpacity) + minimumOpacity;
                 }
                 
-                counter = 0;
-                checkExistsEvery = Math.round(settings.checkExistsInterval / settings.delay);
+                checkExistsEvery = Math.round(settings.checkExistsInterval / delay);
                 
                 startAnimating = function () {
-                    return window.setInterval(function () {
+                    var intervalID = setInterval(function () {
                         context.clearRect(0, 0, canvas.width, canvas.height);
                         opacity.unshift(opacity.pop());
-                        for (i = 0; i < settings.segments; i++) {
+                        for (i = 0; i < segments; i = i + 1) {
                             context.globalAlpha = opacity[i];
                             context.beginPath();
-                            context.moveTo(settings.center + sectors[i][0], settings.center + sectors[i][1]);
-                            context.lineTo(settings.center + sectors[i][2], settings.center + sectors[i][3]);
+                            context.moveTo(canvasCenter + sectors[i][0], canvasCenter + sectors[i][1]);
+                            context.lineTo(canvasCenter + sectors[i][2], canvasCenter + sectors[i][3]);
                             context.stroke();
                         }
                         
-                        if (counter++ % checkExistsEvery === 0 && $(uniqueSelector).length !== 1) {
+                        if (counter % checkExistsEvery === 0 && $(uniqueSelector).length !== 1) {
                             // Target no longer exists, stop animating
-                            window.clearInterval(intervalID);
+                            clearInterval(intervalID);
                         }
-                    }, settings.delay);
+                        counter = counter + 1;
+                    }, delay);
+                    
+                    return intervalID;
                 };
                 
+                /* Store the following:
+                 *   originalTarget (element) : used by "restore" method)
+                 *   startAnimating (function): used by "start"   method)
+                 */
+                $canvas.data(pluginName, {
+                    originalTarget: originalTarget,
+                    startAnimating: startAnimating
+                });
+                
                 if (settings.autoStart === true) {
-                    // Start animating
-                    intervalID = startAnimating();
-                    
-                    // Store the intervalID (used by .cSpinner("stop") method) & the startAnimating function (used by .cSpinner("start") method)
-                    $canvas.data(pluginName, {intervalID: intervalID, startAnimating: startAnimating});
-                } else {
-                    // Store the startAnimating function (used by .cSpinner("start") method)
-                    $canvas.data(pluginName, {startAnimating: startAnimating});
+                    // Call the start() method
+                    $canvas.cSpinner("start");
                 }
                 
                 if (canvas !== this) {
@@ -224,8 +264,16 @@
                     // Start animating
                     intervalID = data.startAnimating();
                     
-                    // Store the intervalID (used by .cSpinner("stop") method)
-                    $this.data(pluginName, {intervalID: intervalID, startAnimating: data.startAnimating});
+                    /* Store the following:
+                     *   originalTarget (element) : used by "restore" method)
+                     *   startAnimating (function): used by "start"   method)
+                     *   intervalID     (integer) : used by "stop"    method)
+                     */
+                    $this.data(pluginName, {
+                        originalTarget: data.originalTarget,
+                        startAnimating: data.startAnimating,
+                        intervalID: intervalID
+                    });
                 }
             });
         },
@@ -237,7 +285,22 @@
                 var $this = $(this),
                 data = $this.data(pluginName);
                 if (data && data.intervalID) {
-                    window.clearInterval(data.intervalID);
+                    clearInterval(data.intervalID);
+                }
+            });
+        },
+        
+        restore: function () {
+            // Return the target element to it’s original state
+            
+            return this.each(function () {
+                var $this = $(this),
+                data = $this.data(pluginName);
+                if (data && data.intervalID) {
+                    clearInterval(data.intervalID);
+                }
+                if (data && data.originalTarget) {
+                    $this.replaceWith(data.originalTarget);
                 }
             });
         }

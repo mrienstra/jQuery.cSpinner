@@ -23,7 +23,7 @@ Requires [jQuery](http://jquery.com/).
 
 ## Support
 
-See http://caniuse.com/#feat=canvas for browser support for the canvas element.
+This script relies on the canvas element. See http://caniuse.com/#feat=canvas for browser support for the canvas element.
 
 To add canvas support to IE, take a look at http://code.google.com/p/explorercanvas/ (I haven't tried this yet).
 
@@ -77,6 +77,12 @@ Or, more realistically:
 If the browser does not support the canvas element, the current behavior is to do nothing.  You can use a traditional animated gif as the target (or a child of the target), to be "enhanced" if canvas is supported.  The downside to this approach is that WebKit browsers will still download the original image  -- see https://bugs.webkit.org/show_bug.cgi?id=6656
 
 If the `shadow` option is specified, the `shadowOffsetY` value will be reversed on Android browsers -- see http://code.google.com/p/android/issues/detail?id=16025
+
+## Misc. Notes
+
+Now passes [JSLint](http://www.jslint.com/)! Woo hoo!
+
+Minified using [Closure Compiler](http://code.google.com/p/closure-compiler/). JSLint hurts the minified version's feelings. Alas!
 
 ## Related
 
