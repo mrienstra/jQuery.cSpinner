@@ -76,7 +76,7 @@ Or, more realistically:
 
 As of v0.2.5, it is now possible to provide the path to a PNG "vertical filmstrip" of frames, using the "fallbackSrc" option. The PNG is expected to be identical to what would've been rendered using the canvas element. You can generate this PNG image as follows (tested using Chrome 10.6.7 Mac):
 
-1. Using a browser that supports the canvas element, use this script to generate an animated canvas
+1. Using a browser that supports the canvas element, use this script to generate an animated canvas.
 
 2. Enter the following code into the console (assumes the target has the id "loading_indicator"):
 
@@ -94,7 +94,7 @@ If the `shadow` option is specified, the `shadowOffsetY` value will be reversed 
 
 ## Misc. Notes
 
-Now passes [JSLint](http://www.jslint.com/)! Woo hoo!
+Now passes [JSLint](http://www.jslint.com/)! Woo hoo! Er... Aww geez, how often does Douglas Crockford update JSLint?!? Umm, I mean, thank you, Mr. Crockford! So, uh, let's say "now mostly passes"...
 
 Minified using [Closure Compiler](http://code.google.com/p/closure-compiler/). JSLint hurts the minified version's feelings. Alas!
 
