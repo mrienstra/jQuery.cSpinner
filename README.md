@@ -11,8 +11,6 @@ Replaces the target element(s) with canvas elements (unless they are already can
 
 http://michaelrienstra.com/jquery.cspinner/demo/
 
-http://jsfiddle.net/mrienstra/5p8ep/
-
 http://jsfiddle.net/mrienstra/UpTnQ/
 
 http://jsfiddle.net/mrienstra/pEjgp/
@@ -23,7 +21,9 @@ Requires [jQuery](http://jquery.com/).
 
 ## Support
 
-This script relies on the canvas element. See http://caniuse.com/#feat=canvas for browser support for the canvas element.
+Using the _default settings_, this script relies on the canvas element. See http://caniuse.com/#feat=canvas for browser support for the canvas element.
+
+As of v0.2.5, it is now possible to provide the path to a PNG "vertical filmstrip" of frames, which it expects to be identical to what it would've rendered using the canvas element. See the "PNG Fallback" section.
 
 To add canvas support to IE, take a look at http://code.google.com/p/explorercanvas/ (I haven't tried this yet).
 
@@ -72,9 +72,23 @@ Or, more realistically:
     
     $("#loading_indicator").cSpinner(cSpinnerOptions);
 
+## PNG Fallback
+
+As of v0.2.5, it is now possible to provide the path to a PNG "vertical filmstrip" of frames, using the "fallbackSrc" option. The PNG is expected to be identical to what would've been rendered using the canvas element. You can generate this PNG image as follows (tested using Chrome 10.6.7 Mac):
+
+1. Using a browser that supports the canvas element, use this script to generate an animated canvas
+
+2. Enter the following code into the console (assumes the target has the id "loading_indicator"):
+
+    document.location = $("#loading_indicator canvas")[0].toDataURL("image/png");
+
 ## Known issues
 
 If the browser does not support the canvas element, the current behavior is to do nothing.  You can use a traditional animated gif as the target (or a child of the target), to be "enhanced" if canvas is supported.  The downside to this approach is that WebKit browsers will still download the original image  -- see https://bugs.webkit.org/show_bug.cgi?id=6656
+
+See the preceding "PNG Fallback" section for an alternate fallback behavior.
+
+On iOS & when using the "pixelRatio" option, the spinner may appear to bob up and down slightly, due to some weird rounding issues? The previous version (0.2.4, AKA [commit 57299d6076431ba6c217](/mrienstra/jQuery.cSpinner/commit/57299d6076431ba6c217ab0f1050ac435de83a26)) is largely immune to this issue.
 
 If the `shadow` option is specified, the `shadowOffsetY` value will be reversed on Android browsers -- see http://code.google.com/p/android/issues/detail?id=16025
 
