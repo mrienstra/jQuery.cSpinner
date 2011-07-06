@@ -298,29 +298,29 @@
                      *   originalTarget (element) : used by “restore” method)
                      *   startAnimating (function): used by “start”   method)
                      */
-                    $canvas.data(pluginName, {
+                    $canvasWrapper.data(pluginName, {
                         originalTarget: originalTarget,
                         startAnimating: startAnimating
                     });
                     
                     if (settings.autoStart === true) {
                         // Call the start() method
-                        $canvas.cSpinner("start");
+                        $canvasWrapper.cSpinner("start");
                     }
                     
                     if (settings.pauseOnBlur === true) {
                         // Bind stop to window’s blur event,
                         // bind start to window’s focus event.
                         $(window).blur(function () {
-                            $canvas.cSpinner("stop");
+                            $canvasWrapper.cSpinner("stop");
                         }).focus(function () {
-                            $canvas.cSpinner("start");
+                            $canvasWrapper.cSpinner("start");
                         });
                     }
                     
-                    if (canvas !== this) {
+                    if (canvasWrapper !== this) {
                         // We replaced the original element, so we need to update it in the jQuery object (for chaining purposes).
-                        jqueryObject[index] = canvas;
+                        jqueryObject[index] = canvasWrapper;
                     }
                 });
                 

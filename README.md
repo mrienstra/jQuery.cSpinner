@@ -11,6 +11,8 @@ Replaces the target element(s) with canvas elements (unless they are already can
 
 http://michaelrienstra.com/jquery.cspinner/demo/
 
+http://jsfiddle.net/mrienstra/5p8ep/
+
 http://jsfiddle.net/mrienstra/UpTnQ/
 
 http://jsfiddle.net/mrienstra/pEjgp/
@@ -80,7 +82,7 @@ As of v0.2.5, it is now possible to provide the path to a PNG "vertical filmstri
 
 2. Enter the following code into the console (assumes the target has the id "loading_indicator"):
 
-    document.location = $("#loading_indicator canvas")[0].toDataURL("image/png");
+    `document.location = $("#loading_indicator canvas")[0].toDataURL("image/png");`
 
 ## Known issues
 
