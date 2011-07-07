@@ -1,5 +1,5 @@
 /*!
- * jQuery.cSpinner, v0.2.5
+ * jQuery.cSpinner, v0.2.6
  * https://github.com/mrienstra/jQuery.cSpinner
  *
  * Copyright 2011, Michael Rienstra
@@ -9,7 +9,7 @@
  *
  * A jQuery plugin to create animated loading indicators using the canvas element
  *
- * Date: Wed Jul 6, 2011
+ * Date: Thu Jul 7, 2011
  */
 
 /* JSLint http://www.jslint.com/
@@ -21,13 +21,15 @@
 
 /* To Do:
  *     * Add color animations -- use code from jQuery UI.
- *     * Allow scale to be defined in px or 100% (relative to parent?) or em?
- *     * Allow “fallbackSrc” setting to point to an animated GIF (currently expects a PNG “vertical filmstrip” of frames).
- *     * Experiment with converting the canvas to an image using toDataURL() canvas method, then animating it by setting it as a background image and changing the background position.
+ *     * Allow scale to be defined in: px, % (relative to parent?) or em?
+ *     * Allow the use of an animated GIF as a fallback.
+ *     * Add error handling for a failure to retrieve “fallbackSourcesArray”.
  *
  * Experiments:
- *     * CSS3 transform:rotate(): http://jsfiddle.net/mrienstra/X3KjE/ (looks pixelated, even shrunk 50% — would require additional images for any “non-square” rotations — e.g. 3 images for a 12-segment spinner)
+ *     * CSS3 transform:rotate(): http://jsfiddle.net/mrienstra/X3KjE/
+ *           Notes: Looks pixelated, even shrunk 50% — would require additional images for any “non-square” rotations — e.g. 3 images for a 12-segment spinner.
  *     * Using an image as the base: http://jsfiddle.net/mrienstra/6nDqP/
+ *           Notes: Works great, integrate?
  */
 
 (function ($) {
@@ -44,10 +46,14 @@
                 
                 var jqueryObject = this,
                     
-                    isCanvasSupported = (function () {
-                        // à la Paul Irish / Modernizr.
+                    canvasSupport = (function () {
+                        // Level of canvas support, returns “full”, “partial”, or “none”.
+                        // “full” means the “toDataURL” canvas method is available.
                         var elem = document.createElement("canvas");
-                        return !!(elem.getContext && elem.getContext("2d"));
+                        if (elem.getContext && elem.getContext("2d")) {
+                            return (elem.toDataURL("image/png").indexOf("data:image/png") === 0) ? "full" : "partial";
+                        }
+                        return "none";
                     }());
                 
                 this.each(function (index) {
@@ -71,11 +77,10 @@
                         "autoStart": true, // If false, call $(el).cSpinner("start")
                         "pauseOnBlur": true, // Stop animating when the window does not have focus.
                         "alwaysReplaceTarget": false, // Replace the target element even if it’s a DIV. If you don't want to preserve any attributes of the target element, you will also need to set “preserveExisting” to “[]”.
-                        "fallbackSrc": undefined, // The path to a PNG "vertical filmstrip" of frames.
+                        "fallbackSourcesArray": undefined, // The path to a JavaScript array of data URIs, for browsers without canvas support. See README.md for details.
                         "checkExistsInterval": 1000,
                         "preserveExisting": ["id", "class", "style"]
                     },
-                        $fallbackImg,
                         i,
                         l,
                         toBeScaled = ["lineWidth", "innerRadius", "outerRadius", "shadowOffsetX", "shadowOffsetY", "shadowBlur"],
@@ -101,6 +106,7 @@
                         uniqueSelector,
                         context,
                         frameContext,
+                        frames = [],
                         minimumOpacity,
                         a,
                         cos,
@@ -109,6 +115,7 @@
                         opacity = [],
                         counter = 0,
                         checkExistsEvery,
+                        generateFrame,
                         startAnimating,
                         originalTarget = this;
                     
@@ -116,17 +123,27 @@
                         $.extend(settings, options);
                     }
                     
-                    if (!isCanvasSupported) {
+                    if (canvasSupport === "none") {
                         // This browser has no Canvas support
-                        if (typeof settings.fallbackSrc === "undefined") {
+                        if (typeof settings.fallbackSourcesArray === "undefined") {
+                            // No fallback has been given.
                             // Silently do nothing, hand off to “the next link in the chain”.
                             return true;
                         } else {
-                            canvasHtml = "<img />";
+                            canvasHtml = "";
                         }
                     }
                     
+                    // Better minification by mapping to a variable that can be renamed.
+                    pixelRatio = settings.pixelRatio;
+                    
+                    if (pixelRatio !== 1) {
+                        // Increase the scale to take the pixel ratio into acount.
+                        settings.scale = settings.scale * pixelRatio;
+                    }
+                    
                     for (i = 0, l = toBeScaled.length; i < l; i = i + 1) {
+                        // Scale all measurements.
                         settings[toBeScaled[i]] = settings[toBeScaled[i]] * settings.scale;
                     }
                     
@@ -136,6 +153,7 @@
                     
                     outerRadius = settings.outerRadius;
                     
+                    // Calculate canvas center.
                     canvasCenter = outerRadius + settings.lineWidth;
                     if (settings.shadow) {
                         // Make canvas slightly larger to accommodate the shadow.
@@ -145,12 +163,13 @@
                         canvasCenter += settings.shadowBlur;
                     }
                     canvasCenter = Math.ceil(canvasCenter);
+                    
                     canvasSize = canvasSizeCSS = canvasCenter * 2;
                     
-                    pixelRatio = settings.pixelRatio;
-                    
                     if (pixelRatio !== 1) {
-                        canvasSize = canvasSize * pixelRatio;
+                        // All measurements have been scaled up to take the pixel ratio into account,
+                        // but the CSS size should be scaled back down.
+                        canvasSizeCSS = canvasSizeCSS / pixelRatio;
                     }
                     
                     if (settings.alwaysReplaceTarget === true || this.nodeName !== "DIV") {
@@ -177,9 +196,11 @@
                     
                     // Style the wrapper.
                     $canvasWrapper.css({
-                        "overflow": "hidden",
+                        // Some of these styles are only needed for certain approaches.
                         "width": String(canvasSizeCSS) + "px",
-                        "height": String(canvasSizeCSS) + "px"
+                        "height": String(canvasSizeCSS) + "px",
+                        "overflow": "hidden", // Needed for “canvasSupport === "partial"”.
+                        "background-size": String(canvasSizeCSS) + "px " + String(canvasSizeCSS) + "px" // Needed for “pixelRatio !== 1”.
                     });
                     
                     // Make sure there is a unique ID or class we can target.
@@ -199,15 +220,22 @@
                         uniqueSelector = "#" + canvasWrapperId;
                     }
                     
-                    if (isCanvasSupported) {
-                        // Initialize the first canvas element, used to hold all of the frames.
-                        $canvas = $("canvas:eq(0)", canvasWrapper);
-                        canvas = $canvas[0];
-                        canvas.width = canvasSize;
-                        canvas.height = canvasSize * segments;
-                        context = canvas.getContext("2d");
+                    if (canvasSupport !== "none") {
+                        if (canvasSupport === "partial") {
+                            // Initialize the first canvas element, used to hold all of the frames when “canvasSupport === "partial"”.
+                            $canvas = $("canvas:eq(0)", canvasWrapper);
+                            canvas = $canvas[0];
+                            canvas.width = canvasSize;
+                            canvas.height = canvasSize * segments;
+                            context = canvas.getContext("2d");
+                            context.scale(pixelRatio, pixelRatio);
+                            $canvas.css({
+                                "width": String(canvasSizeCSS) + "px",
+                                "height": String(canvasSizeCSS * segments) + "px"
+                            });
+                        }
                         
-                        // Initialize the second canvas element, used to draw individual frames for the first run.
+                        // Initialize the second canvas element, used to draw individual frames, then removed.
                         $frameCanvas = $("canvas:eq(1)", canvasWrapper);
                         frameCanvas = $frameCanvas[0];
                         $frameCanvas.css("display", "none");
@@ -218,26 +246,33 @@
                         frameContext.strokeStyle = settings.color;
                         
                         if (settings.shadow) {
-                            // Shadow settings.
+                            // Apply shadow settings.
                             frameContext.shadowOffsetX = shadowOffsetX;
                             frameContext.shadowOffsetY = shadowOffsetY;
                             frameContext.shadowBlur = settings.shadowBlur;
                             frameContext.shadowColor = settings.shadowColor;
                         }
                     } else {
-                        // !isCanvasSupported
-                        $canvas = $("img", canvasWrapper);
-                        $canvas.attr("src", settings.fallbackSrc);
+                        // canvasSupport === "none"
+                        // We wouldn't have gotten this far unless settings.fallbackSourcesArray was given.
+                        // Retrieve array of data URIs, to populate the “frames” array.
+                        $.ajax({
+                            type: "GET",
+                            url: settings.fallbackSourcesArray,
+                            dataType: "json",
+                            success: function (response) {
+                                frames = response;
+                                // “Preload” frames, to prevent flickering in first cycle in Safari (desktop & mobile).
+                                for (i = 0, l = frames.length; i < l; i = i + 1) {
+                                    $("<img />").attr("src", frames[i]);
+                                }
+                            }
+                        });
                     }
                     
-                    if (pixelRatio !== 1) {
-                        if (isCanvasSupported) {
-                            context.scale(pixelRatio, pixelRatio);
-                        }
-                        $canvas.css({
-                            width: String(canvasSizeCSS) + "px",
-                            height: String(canvasSizeCSS * segments) + "px"
-                        });
+                    if (canvasSupport === "full") {
+                        // Removed unused canvas.
+                        $("canvas:eq(0)", canvasWrapper).remove();
                     }
                     
                     minimumOpacity = settings.minimumOpacity;
@@ -262,45 +297,80 @@
                     
                     checkExistsEvery = Math.round(settings.checkExistsInterval / delay);
                     
+                    generateFrame = function () {
+                        // Draw frame, then store frame.
+                        
+                        // Draw frame.
+                        frameContext.clearRect(0, 0, canvasSize, canvasSize);
+                        opacity.unshift(opacity.pop());
+                        for (i = 0; i < segments; i = i + 1) {
+                            frameContext.globalAlpha = opacity[i];
+                            frameContext.beginPath();
+                            frameContext.moveTo(canvasCenter + sectors[i][0], canvasCenter + sectors[i][1]);
+                            frameContext.lineTo(canvasCenter + sectors[i][2], canvasCenter + sectors[i][3]);
+                            frameContext.stroke();
+                        }
+                        
+                        // Store frame.
+                        if (canvasSupport === "full") {
+                            // Add frame to “frames” array in data URI format.
+                            frames.push(frameCanvas.toDataURL("image/png"));
+                            // “Preload” frame, to prevent flickering in first cycle in Safari (desktop & mobile).
+                            $("<img />").attr("src", frames[frames.length - 1]);
+                        } else {
+                            // canvasSupport === "partial"
+                            // Copy frame into the main canvas.
+                            context.drawImage(frameCanvas, 0, counter * canvasSizeCSS);
+                        }
+                        
+                        counter = counter + 1;
+                    };
+                    
                     startAnimating = function () {
                         var intervalID = setInterval(function () {
-                            if (isCanvasSupported && counter < segments) {
-                                // We’re still drawing the frames (first cycle).
-                                frameContext.clearRect(0, 0, canvasSize, canvasSize);
-                                opacity.unshift(opacity.pop());
-                                for (i = 0; i < segments; i = i + 1) {
-                                    frameContext.globalAlpha = opacity[i];
-                                    frameContext.beginPath();
-                                    frameContext.moveTo(canvasCenter + sectors[i][0], canvasCenter + sectors[i][1]);
-                                    frameContext.lineTo(canvasCenter + sectors[i][2], canvasCenter + sectors[i][3]);
-                                    frameContext.stroke();
-                                }
-                                context.drawImage(frameCanvas, 0, counter * canvasSizeCSS);
-                                if (counter + 1 === segments) {
-                                    // We’re done with this element.
-                                    $frameCanvas.remove();
+                            if (canvasSupport === "partial") {
+                                // Animate, by changing margin-top value of the main canvas.
+                                $canvas.css("margin-top", String(-1 * counter % segments * canvasSizeCSS) + "px");
+                            } else {
+                                // Animate, by changing the background-image.
+                                if (typeof frames[counter % segments] !== "undefined") {
+                                    $canvasWrapper.css({"background-image": "url(" + frames[counter % segments] + ")"});
                                 }
                             }
-                            
-                            $canvas.css("margin-top", String(-1 * counter % segments * canvasSizeCSS) + "px");
                             
                             if (counter % checkExistsEvery === 0 && $(uniqueSelector).length !== 1) {
                                 // Target no longer exists, stop animating.
                                 clearInterval(intervalID);
                             }
+                            
                             counter = counter + 1;
                         }, delay);
                         
                         return intervalID;
                     };
                     
+                    if (canvasSupport !== "none") {
+                        // Generate frames
+                        while (counter < segments) {
+                            generateFrame();
+                        }
+                        
+                        // Reset counter
+                        counter = 0;
+                        
+                        // We’re done with this element.
+                        $frameCanvas.remove();
+                    }
+                    
                     /* Store the following:
-                     *   originalTarget (element) : used by “restore” method)
-                     *   startAnimating (function): used by “start”   method)
+                     *   originalTarget (element) : used by “restore” method.
+                     *   startAnimating (function): used by “start”   method.
+                     *   frames         (array)   : used by “export”  method.
                      */
                     $canvasWrapper.data(pluginName, {
                         originalTarget: originalTarget,
-                        startAnimating: startAnimating
+                        startAnimating: startAnimating,
+                        frames: frames
                     });
                     
                     if (settings.autoStart === true) {
@@ -309,11 +379,11 @@
                     }
                     
                     if (settings.pauseOnBlur === true) {
-                        // Bind stop to window’s blur event,
-                        // bind start to window’s focus event.
-                        $(window).blur(function () {
+                        // Bind “stop” to window’s blur event,
+                        // bind “start” to window’s focus event.
+                        $(window).bind("blur." + pluginName, function () {
                             $canvasWrapper.cSpinner("stop");
-                        }).focus(function () {
+                        }).bind("focus." + pluginName, function () {
                             $canvasWrapper.cSpinner("start");
                         });
                     }
@@ -340,13 +410,15 @@
                         intervalID = data.startAnimating();
                         
                         /* Store the following:
-                         *   originalTarget (element) : used by “restore” method)
-                         *   startAnimating (function): used by “start”   method)
-                         *   intervalID     (integer) : used by “stop”    method)
+                         *   originalTarget (element) : used by “restore” method.
+                         *   startAnimating (function): used by “start”   method.
+                         *   frames         (array)   : used by “export”  method.
+                         *   intervalID     (integer) : used by “stop”    method.
                          */
                         $this.data(pluginName, {
                             originalTarget: data.originalTarget,
                             startAnimating: data.startAnimating,
+                            frames: data.frames,
                             intervalID: intervalID
                         });
                     }
@@ -363,12 +435,14 @@
                         clearInterval(data.intervalID);
                         
                         /* Store the following:
-                         *   originalTarget (element) : used by “restore” method)
-                         *   startAnimating (function): used by “start”   method)
+                         *   originalTarget (element) : used by “restore” method.
+                         *   startAnimating (function): used by “start”   method.
+                         *   frames         (array)   : used by “export”  method.
                          */
                         $this.data(pluginName, {
                             originalTarget: data.originalTarget,
-                            startAnimating: data.startAnimating
+                            startAnimating: data.startAnimating,
+                            frames: data.frames
                         });
                     }
                 });
@@ -376,6 +450,10 @@
             
             restore: function () {
                 // Return the target element to it’s original state.
+                // Note: this function has not been tested extensively.
+                
+                // Also unbind the handlers attached to the window.
+                $(window).unbind("blur." + pluginName).unbind("focus." + pluginName);
                 
                 return this.each(function () {
                     var $this = $(this),
@@ -385,6 +463,28 @@
                     }
                     if (data && data.originalTarget) {
                         $this.replaceWith(data.originalTarget);
+                    }
+                });
+            },
+            
+            "export": function () {
+                // To export a JavaScript array of data URIs, for use as a fallback for browsers without canvas support.
+                // This function can be removed. You can also search for “export” and remove lines used to store the frames.
+                
+                var i, l;
+                return this.each(function () {
+                    var data = $(this).data(pluginName),
+                        frame_data;
+                    if (data && data.frames) {
+                        frame_data = "[";
+                        for (i = 0, l = data.frames.length; i < l; i = i + 1) {
+                            frame_data += '"' + data.frames[i] + '"';
+                            if (i + 1 < l) {
+                                frame_data += ",";
+                            }
+                        }
+                        frame_data += "]";
+                        $("body").text(frame_data);
                     }
                 });
             }
