@@ -1,21 +1,33 @@
 jQuery.cSpinner
 =======
 
-A jQuery plugin to create animated loading indicators using the canvas element
+A jQuery plugin to create animated loading indicators using the canvas element.
 
-Based on code by Thijs van der Vossen, Fingertips, http://www.fngtps.com
+Inspired by Thijs van der Vossen, Fingertips, http://www.fngtps.com
 
-Replaces the target element(s) with canvas elements (unless they are already canvas elements), then draws an animated loading indicator.
+Minified version is 4.6 kB / 2.1 kB gzipped.
+
+Lite minified version is 3.9 kB / 1.9 kB gzipped.
+
+
 
 ## Demos
 
 http://michaelrienstra.com/jquery.cspinner/demo/
 
-http://jsfiddle.net/mrienstra/UpTnQ/
+http://jsfiddle.net/mrienstra/UpTnQ/ Circles
 
-http://jsfiddle.net/mrienstra/pEjgp/
+http://jsfiddle.net/mrienstra/pEjgp/ Squares
 
-http://jsfiddle.net/mrienstra/5p8ep/
+http://jsfiddle.net/mrienstra/5p8ep/ Subtle
+
+http://jsfiddle.net/mrienstra/hj5Lw/ Complex #1
+
+http://jsfiddle.net/mrienstra/M6he5/ Complex #2
+
+http://jsfiddle.net/mrienstra/WSG7G/ Complex #3
+
+
 
 ## Dependancies
 
@@ -49,7 +61,7 @@ Custom:
         function () { $(this).cSpinner("start"); }
     );
 
-See the source (or jsFiddle demos, above) for more options.
+See [the settings object](https://github.com/mrienstra/jQuery.cSpinner/blob/master/jquery.cspinner.js#L43) in the source (or jsFiddle demos, above) for more options.
 
 ### Mobile usage
 
@@ -88,17 +100,33 @@ As of v0.2.6, it is now possible to provide the path to a JS array of data URIs,
 
 ## Known issues
 
-If the browser does not support the canvas element, the current behavior is to do nothing.  You can use a traditional animated gif as the target (or a child of the target), to be "enhanced" if canvas is supported.  The downside to this approach is that WebKit browsers will still download the original image  -- see https://bugs.webkit.org/show_bug.cgi?id=6656
+If the browser does not support the canvas element, and the `fallbackSourcesArray` option is not specified, the current behavior is to do nothing.  You can use a traditional animated gif as the target (or a child of the target), to be "enhanced" if canvas is supported.  The downside to this approach is that WebKit browsers will still download the original image  -- see https://bugs.webkit.org/show_bug.cgi?id=6656 (of course, most if not all WebKit browsers support the canvas element).
 
 See the preceding "Data URI Fallback" section for an alternate fallback behavior.
 
-If the `shadow` option is specified, the `shadowOffsetY` value will be reversed on Android browsers -- see http://code.google.com/p/android/issues/detail?id=16025
+If the `shadow` option is specified, the `shadowOffsetY` value will be reversed on Android browsers -- see http://code.google.com/p/android/issues/detail?id=16025 , see https://gist.github.com/1183651 for a solution.
 
-If using the "fallbackSourcesArray" option, there is no error handling when retrieving the data URIs.
+If using the `fallbackSourcesArray` option, there is no error handling when retrieving the data URIs.
+
+
+
+## Lite version
+
+If you are trying to shave bytes, check out the Lite version, which strips a few features.
+
+ * 'alwaysReplaceTarget' option removed. Effectively set to 'true'.
+
+ * 'restore' method removed.
+
+ * 'export' method removed.
+
+ * Removed $.error() for undefined method calls.
+
+
 
 ## Misc. Notes
 
-Now passes [JSLint](http://www.jslint.com/)! Woo hoo! Er... Aww geez, let's say "now mostly passes"...
+Linted using [Closure Linter](http://code.google.com/closure/utilities/) (GJsLint). Currently passing, except for 43 overly long lines... :1
 
 Minified using [Closure Compiler](http://code.google.com/p/closure-compiler/). Plus a little fine-tuning by hand.
 
@@ -109,3 +137,7 @@ After I started writing this, I discovered 2 similar plugins -- check 'em out!
 * Spinners: http://plugins.jquery.com/project/spinners  /  https://github.com/staaky/spinners
 
 * jQuery Canvas Loader: http://plugins.jquery.com/project/canvas-loader  /  http://jamund.com/canvas-loader/
+
+Ooo, and a third! This one is really nice!
+
+* spin.js: http://fgnass.github.com/spin.js/  /  https://github.com/fgnass/spin.js

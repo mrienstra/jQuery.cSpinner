@@ -10,10 +10,6 @@
  * Date: Wed Jan 18, 2012
  */
 
-/* Linted using Closure Linter http://code.google.com/closure/utilities/
- * Currently passing, except for 42 overly long lines... :1
- */
-
 (function($) {
   'use strict';
   var pluginName = 'cSpinner', // Used primarily for namespacing.
@@ -60,7 +56,6 @@
               'pixelRatio': 1, // For high-dpi displays, like the iPhone 4.
               'autoStart': true, // If false, call $(selector)[pluginName]('start') to begin animating.
               'pauseOnBlur': true, // Stop animating when the window does not have focus.
-              'alwaysReplaceTarget': false, // Replace the target element even if it’s a DIV. If you don’t want to preserve any attributes of the target element, you will also need to set “preserveExisting” to “[]”.
               'fallbackSourcesArray': undefined, // The path to a JavaScript array of data URIs, for browsers without canvas support. See README.md for details.
               'checkExistsInterval': 1000,
               'preserveExisting': ['id', 'class', 'style'],
@@ -104,8 +99,7 @@
                 calculateAlpha,
                 generateFrame,
                 counter = 0,
-                startAnimating,
-                originalTarget = this;
+                startAnimating;
 
             if (options) {
               $.extend(settings, options);
@@ -159,26 +153,19 @@
               canvasSizeCSS = canvasSizeCSS / pixelRatio;
             }
 
-            if (settings.alwaysReplaceTarget === true || this.nodeName !== 'DIV') {
-              // Replace target element with DIV element.
-              $canvasWrapper = $('<div>' + canvasHtml + '</div>');
-              $this.replaceWith(function() {
-                // Defaults to preserving the ID, class, & style attributes of the target element.
-                for (iteration = 0, iterations = settings.preserveExisting.length; iteration < iterations; iteration = iteration + 1) {
-                  attr = settings.preserveExisting[iteration];
-                  if ($this.attr(attr)) {
-                    $canvasWrapper.attr(attr, $this.attr(attr));
-                  }
+            // Replace target element with DIV element.
+            $canvasWrapper = $('<div>' + canvasHtml + '</div>');
+            $this.replaceWith(function() {
+              // Defaults to preserving the ID, class, & style attributes of the target element.
+              for (iteration = 0, iterations = settings.preserveExisting.length; iteration < iterations; iteration = iteration + 1) {
+                attr = settings.preserveExisting[iteration];
+                if ($this.attr(attr)) {
+                  $canvasWrapper.attr(attr, $this.attr(attr));
                 }
-                return $canvasWrapper;
-              });
-              canvasWrapper = $canvasWrapper[0];
-            } else {
-              canvasWrapper = this;
-              $canvasWrapper = $this;
-              // Set the contents of the target DIV to two canvas elements.
-              $canvasWrapper.html(canvasHtml);
-            }
+              }
+              return $canvasWrapper;
+            });
+            canvasWrapper = $canvasWrapper[0];
 
             // Style the wrapper.
             $canvasWrapper.css({
@@ -343,14 +330,10 @@
             }
 
             /* Store the following:
-             *   originalTarget (element) : used by “restore” method.
              *   startAnimating (function): used by “start”   method.
-             *   frames         (array)   : used by “export”  method.
              */
             $canvasWrapper.data(pluginName, {
-              originalTarget: originalTarget,
-              startAnimating: startAnimating,
-              frames: frames
+              startAnimating: startAnimating
             });
 
             if (settings.autoStart === true) {
@@ -390,15 +373,11 @@
               intervalID = data.startAnimating();
 
               /* Store the following:
-               *   originalTarget (element) : used by “restore” method.
                *   startAnimating (function): used by “start”   method.
-               *   frames         (array)   : used by “export”  method.
                *   intervalID     (integer) : used by “stop”    method.
                */
               $this.data(pluginName, {
-                originalTarget: data.originalTarget,
                 startAnimating: data.startAnimating,
-                frames: data.frames,
                 intervalID: intervalID
               });
             }
@@ -415,56 +394,11 @@
               clearInterval(data.intervalID);
 
               /* Store the following:
-               *   originalTarget (element) : used by “restore” method.
                *   startAnimating (function): used by “start”   method.
-               *   frames         (array)   : used by “export”  method.
                */
               $this.data(pluginName, {
-                originalTarget: data.originalTarget,
-                startAnimating: data.startAnimating,
-                frames: data.frames
+                startAnimating: data.startAnimating
               });
-            }
-          });
-        },
-
-        restore: function() {
-          // Return the target element to it’s original state.
-          // Note: this function has not been tested extensively.
-
-          // Also unbind the handlers attached to the window.
-          $(window).unbind('blur.' + pluginName).unbind('focus.' + pluginName);
-
-          return this.each(function() {
-            var $this = $(this),
-                data = $this.data(pluginName);
-            if (data && data.intervalID) {
-              clearInterval(data.intervalID);
-            }
-            if (data && data.originalTarget) {
-              $this.replaceWith(data.originalTarget);
-            }
-          });
-        },
-
-        'export': function() {
-          // To export a JavaScript array of data URIs, for use as a fallback for browsers without canvas support.
-          // This function can be removed. You can also search for “export” and remove lines used to store the frames.
-
-          var iteration, iterations;
-          return this.each(function() {
-            var data = $(this).data(pluginName),
-                frame_data;
-            if (data && data.frames) {
-              frame_data = '[';
-              for (iteration = 0, iterations = data.frames.length; iteration < iterations; iteration = iteration + 1) {
-                frame_data += '"' + data.frames[iteration] + '"';
-                if (iteration + 1 < iterations) {
-                  frame_data += ',';
-                }
-              }
-              frame_data += ']';
-              $('body').text(frame_data);
             }
           });
         }
@@ -475,8 +409,6 @@
       return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
     } else if (typeof method === 'object' || !method) {
       return methods.init.apply(this, arguments);
-    } else {
-      $.error('jQuery.' + pluginName + ': Method “' + method + '” does not exist');
     }
   }
 }(jQuery));
